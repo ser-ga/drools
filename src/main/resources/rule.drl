@@ -1,0 +1,28 @@
+package com.example.assignments;
+
+import com.example.assignments.Person;
+import com.example.assignments.Assignment;
+
+dialect  "mvel"
+
+rule "Назначить курс"
+    when
+        person : Person( grade > 10 );
+    then
+        Assignment assign = new Assignment();
+        assign.setText(person.toString());
+        insertLogical(assign)
+        System.out.println("Курс назначен сотруднику " + person);
+        modify( person ){ setText( "тестовая строка " + person.getGrade() ) }
+end
+
+rule "Показать назначения курса"
+    when
+        $assignment :  Assignment()
+    then
+        System.out.println("Найдено назначение: " + $assignment );
+end
+
+query "get-assignments"
+    $assignment :  Assignment()
+end
