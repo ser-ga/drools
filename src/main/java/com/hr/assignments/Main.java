@@ -1,9 +1,11 @@
-package com.example.assignments;
+package com.hr.assignments;
 
 import org.kie.api.KieServices;
 import org.kie.api.command.Command;
 import org.kie.api.command.KieCommands;
+import org.kie.api.command.Setter;
 import org.kie.api.runtime.ExecutionResults;
+import org.kie.api.runtime.rule.FactHandle;
 import org.kie.api.runtime.rule.QueryResults;
 import org.kie.api.runtime.rule.QueryResultsRow;
 import org.kie.server.api.marshalling.MarshallingFormat;
@@ -14,10 +16,8 @@ import org.kie.server.client.KieServicesConfiguration;
 import org.kie.server.client.KieServicesFactory;
 import org.kie.server.client.RuleServicesClient;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
 
@@ -29,24 +29,66 @@ public class Main {
 
     private static KieServicesConfiguration conf;
     private static KieServicesClient kieServicesClient;
+    private static RuleServicesClient rulesClient;
+    private static KieCommands commandsFactory;
+    private static String containerId = "Assignments_1.0.4-SNAPSHOT";
 
     public static void main(String[] args) {
         conf = KieServicesFactory.newRestConfiguration(URL, USER, PASSWORD);
         conf.setMarshallingFormat(FORMAT);
+        Set<Class<?>> extraClassList = new HashSet<Class<?>>();
+        extraClassList.add(Person.class);
+        extraClassList.add(Assignment.class);
+        conf.addExtraClasses(extraClassList);
         kieServicesClient = KieServicesFactory.newKieServicesClient(conf);
 
-        String containerId = "Assignments_1.0.4-SNAPSHOT";
         System.out.println("== Sending commands to the server ==");
-        RuleServicesClient rulesClient = kieServicesClient.getServicesClient(RuleServicesClient.class);
-        KieCommands commandsFactory = KieServices.Factory.get().getCommands();
 
-        int count = 100;
-        List<Person> personList = new ArrayList<Person>(count);
-        int i = 0;
-        while (i < count) {
-            personList.add(PersonFactory.newPerson());
-            i++;
+        rulesClient = kieServicesClient.getServicesClient(RuleServicesClient.class);
+        commandsFactory = KieServices.Factory.get().getCommands();
+
+        dispose();
+        FactHandle factHandle = sendPerson();
+        getAssignments();
+
+        sleep(2);
+
+        modify(factHandle);
+
+        sleep(2);
+
+        getAssignments();
+
+    }
+
+    public static void sleep(long seconds) {
+        try {
+            TimeUnit.SECONDS.sleep(seconds);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
+    }
+
+    public static void modify(FactHandle factHandle) {
+        Setter setter = commandsFactory.newSetter("grade", "1");
+        List<Setter> setters = new ArrayList<Setter>();
+        setters.add(setter);
+        Command<?> modify = commandsFactory.newModify(factHandle, setters);
+        rulesClient.executeCommandsWithResults(containerId, modify);
+    }
+    public static void dispose() {
+        Command<?> dispose =  commandsFactory.newDispose();
+        rulesClient.executeCommandsWithResults(containerId, dispose);
+    }
+
+    public static FactHandle sendPerson() {
+//        int count = 100;
+//        List<Person> personList = new ArrayList<Person>(count);
+//        int i = 0;
+//        while (i < count) {
+//            personList.add(PersonFactory.newPerson());
+//            i++;
+//        }
 
 //        Command<?> insert = commandsFactory.newInsertElements(personList, "insert-person");
         Command<?> insert = commandsFactory.newInsert(PersonFactory.newPerson(), "insert-person");
@@ -62,9 +104,14 @@ public class Main {
             System.out.println("Error executing rules. Message: ");
             System.out.println(executeResponse.getMsg());
         }
+        FactHandle factHandle = (FactHandle) executeResponse.getResult().getFactHandle("insert-person");
+        return factHandle;
 
+    }
+
+    public static void getAssignments() {
         Command<?> queryAssignments = commandsFactory.newQuery("query-result", "get-assignments");
-        executeResponse = rulesClient.executeCommandsWithResults(containerId, queryAssignments);
+        ServiceResponse<ExecutionResults> executeResponse = rulesClient.executeCommandsWithResults(containerId, queryAssignments);
         ExecutionResults resultData = executeResponse.getResult();
         QueryResults queryResult = (QueryResults) resultData.getValue("query-result");
         Iterator<QueryResultsRow> rowIt = queryResult.iterator();
@@ -73,8 +120,6 @@ public class Main {
             QueryResultsRow row = rowIt.next();
             System.out.println(row.get("$assignment"));
         }
-
-
     }
 
 }

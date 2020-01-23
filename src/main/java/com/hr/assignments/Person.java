@@ -1,4 +1,4 @@
-package com.example.assignments;
+package com.hr.assignments;
 
 public class Person implements java.io.Serializable {
 

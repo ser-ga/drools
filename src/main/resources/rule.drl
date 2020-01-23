@@ -1,28 +1,25 @@
-package com.example.assignments;
+package com.hr.assignments;
 
-import com.example.assignments.Person;
-import com.example.assignments.Assignment;
+import com.hr.assignments.Person;
+import com.hr.assignments.Assignment;
 
 dialect  "mvel"
 
-rule "Назначить курс"
+rule "Назначить курс 0001"
     when
-        person : Person( grade > 10 );
+        $person : Person( grade > 10 );
     then
-        Assignment assign = new Assignment();
-        assign.setText(person.toString());
-        insertLogical(assign)
-        System.out.println("Курс назначен сотруднику " + person);
-        modify( person ){ setText( "тестовая строка " + person.getGrade() ) }
-end
-
-rule "Показать назначения курса"
-    when
-        $assignment :  Assignment()
-    then
-        System.out.println("Найдено назначение: " + $assignment );
+        //Assignment assign = new Assignment();
+        //assign.setText(person.toString());
+        //insertLogical(assign)
+        insertLogical(new Assignment($person))
+        System.out.println("Курс 0001 назначен сотруднику " + $person);
 end
 
 query "get-assignments"
     $assignment :  Assignment()
+end
+
+query "get-persons"
+    $person : Person()
 end
