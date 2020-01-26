@@ -1,5 +1,8 @@
 package com.hr.assignments;
 
+import javax.xml.bind.annotation.XmlRootElement;
+
+@XmlRootElement
 public class Assignment implements java.io.Serializable {
 
     static final long serialVersionUID = 1L;

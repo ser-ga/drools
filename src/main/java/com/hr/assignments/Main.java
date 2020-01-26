@@ -1,5 +1,6 @@
 package com.hr.assignments;
 
+import com.google.common.collect.Lists;
 import org.kie.api.KieServices;
 import org.kie.api.command.Command;
 import org.kie.api.command.KieCommands;
@@ -16,14 +17,17 @@ import org.kie.server.client.KieServicesConfiguration;
 import org.kie.server.client.KieServicesFactory;
 import org.kie.server.client.RuleServicesClient;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class Main {
 
-    private static final String URL = "http://localhost:8180/kie-server/services/rest/server";
-    private static final String USER = "admin";
-    private static final String PASSWORD = "admin";
+    private static final String URL = "http://localhost:8090/rest/server";
+    private static final String USER = "kieserver";
+    private static final String PASSWORD = "kieserver1!";
 
     private static final MarshallingFormat FORMAT = MarshallingFormat.JSON;
 
@@ -31,7 +35,7 @@ public class Main {
     private static KieServicesClient kieServicesClient;
     private static RuleServicesClient rulesClient;
     private static KieCommands commandsFactory;
-    private static String containerId = "Assignments_1.0.4-SNAPSHOT";
+    private static String containerId = "assignments_1.0.0-SNAPSHOT";
 
     public static void main(String[] args) {
         conf = KieServicesFactory.newRestConfiguration(URL, USER, PASSWORD);
@@ -47,15 +51,15 @@ public class Main {
         rulesClient = kieServicesClient.getServicesClient(RuleServicesClient.class);
         commandsFactory = KieServices.Factory.get().getCommands();
 
-        dispose();
+//        dispose();
         FactHandle factHandle = sendPerson();
         getAssignments();
 
-        sleep(2);
+        sleep(500);
 
         modify(factHandle);
 
-        sleep(2);
+        sleep(500);
 
         getAssignments();
 
@@ -63,7 +67,7 @@ public class Main {
 
     public static void sleep(long seconds) {
         try {
-            TimeUnit.SECONDS.sleep(seconds);
+            TimeUnit.MILLISECONDS.sleep(seconds);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -71,10 +75,10 @@ public class Main {
 
     public static void modify(FactHandle factHandle) {
         Setter setter = commandsFactory.newSetter("grade", "1");
-        List<Setter> setters = new ArrayList<Setter>();
-        setters.add(setter);
-        Command<?> modify = commandsFactory.newModify(factHandle, setters);
-        rulesClient.executeCommandsWithResults(containerId, modify);
+        Command<?> modify = commandsFactory.newModify(factHandle, Lists.newArrayList(setter));
+        Command<?> fireAllRules = commandsFactory.newFireAllRules();
+        Command<?> batchCommand = commandsFactory.newBatchExecution(Arrays.asList(modify, fireAllRules));
+        rulesClient.executeCommandsWithResults(containerId, batchCommand);
     }
     public static void dispose() {
         Command<?> dispose =  commandsFactory.newDispose();
@@ -82,15 +86,6 @@ public class Main {
     }
 
     public static FactHandle sendPerson() {
-//        int count = 100;
-//        List<Person> personList = new ArrayList<Person>(count);
-//        int i = 0;
-//        while (i < count) {
-//            personList.add(PersonFactory.newPerson());
-//            i++;
-//        }
-
-//        Command<?> insert = commandsFactory.newInsertElements(personList, "insert-person");
         Command<?> insert = commandsFactory.newInsert(PersonFactory.newPerson(), "insert-person");
         Command<?> fireAllRules = commandsFactory.newFireAllRules();
         Command<?> batchCommand = commandsFactory.newBatchExecution(Arrays.asList(insert, fireAllRules));
